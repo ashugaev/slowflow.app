@@ -11,3 +11,8 @@ front/stats.json
 
 # development
 **/test_*.js
+
+.env
+parser/.env
+front/.env
+server/.env
