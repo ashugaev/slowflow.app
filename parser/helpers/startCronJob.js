@@ -6,6 +6,7 @@ module.exports.startCronJob = ({
   period,
   callback,
   callbackArgs,
+  executeBeforeInit,
 }) => {
   const job = new CronJob(
     period,
@@ -25,7 +26,11 @@ module.exports.startCronJob = ({
     },
     false,
     'Europe/Moscow',
+    null,
+    executeBeforeInit,
   );
+
+  job.timeout = 1000;
 
   job.start();
 

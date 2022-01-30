@@ -34,6 +34,8 @@ const Tracks = new Schema({
   id: Object,
   kind: String,
   etag: String,
+  etag: String,
+  _lastLiveCheckedAt: Number
 });
 
 const Tags = new Schema({});

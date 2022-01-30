@@ -5,6 +5,7 @@
   "main": "parser.js",
   "scripts": {
     "start:cron:checkDeadTracks": "node cron/startCheckDeadTracks.js > ./logs/checkDeadTracks.logfile",
+    "start:cron:checkDeadTracks:noLogFile": "node cron/startCheckDeadTracks.js",
     "start:cron:checkLive": "node cron/startCheckLive.js > ./logs/checkLive.logfile",
     "start:cron:rmLogs": "node cron/clearLogs.js > ./logs/rmLogs.logfile",
     "start:cron:checkDuplicates": "node cron/checkDuplicates.js > ./logs/checkDuplicates.logfile",

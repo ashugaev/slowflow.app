@@ -2,7 +2,6 @@ const get = require('lodash/get');
 const axios = require('axios');
 const log4js = require('log4js');
 const db = require('../../server/schema/schema');
-const { tracksIterator } = require('../helpers/tracksIterator.js');
 
 const logger = log4js.getLogger();
 logger.level = 'debug';
@@ -15,15 +14,31 @@ module.exports.checkTracksIsNotDead = ({ track, _id }) => {
     const thumbnailUrl = get(track, 'snippet.thumbnails.medium.url');
 
     try {
-      await axios.get(thumbnailUrl);
+      try {
+        await axios.get(thumbnailUrl)
+      } catch (e) {
+        // FIXME: Тут должна быть именно ошибка об отсутствующей картинке, а не таймаут или пр дерьмо
+        await db.Tracks.deleteOne({_id});
+
+        rj(`Dead Track Was Removed :( ${thumbnailUrl}`);
+
+        return;
+      }
+
+      // Ставим метку о проверке
+      await db.Tracks.updateOne({ _id }, {
+        $set: {
+          _lastLiveCheckedAt: new Date().getTime(),
+        }
+      })
 
       logger.debug('Image is Valid', thumbnailUrl);
 
       rs();
     } catch (e) {
-      await db.Tracks.deleteOne({ _id });
+      logger.error('Неизвестная ошибка при проверке статуса трека', e);
 
-      rj(`Dead Track Was Removed :( ${thumbnailUrl}`);
+      rj(`Неизвестная ошибка при проверке статуса трека ${thumbnailUrl}`);
     }
   });
 };
