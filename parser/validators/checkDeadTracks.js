@@ -9,38 +9,47 @@ logger.level = 'debug';
 /**
  * Проверяет, что трек еще жив
  */
-module.exports.checkTracksIsNotDead = ({ track, _id }) => {
-  return new Promise(async (rs, rj) => {
-    const thumbnailUrl = get(track, 'snippet.thumbnails.medium.url');
+module.exports.checkTracksIsNotDead = ({track, _id}) => {
+    return new Promise(async (rs, rj) => {
+        const thumbnailUrl = get(track, 'snippet.thumbnails.medium.url');
 
-    try {
-      try {
-        await axios.get(thumbnailUrl)
-      } catch (e) {
-        // FIXME: Тут должна быть именно ошибка об отсутствующей картинке, а не таймаут или пр дерьмо
-        await db.Tracks.deleteOne({_id});
-
-        rj(`Dead Track Was Removed :( ${thumbnailUrl}`);
-
-        return;
-      }
-
-      // Ставим метку о проверке
-      await db.Tracks.updateOne({ _id }, {
-        $set: {
-          _lastLiveCheckedAt: new Date().getTime(),
+        if (track._lastDeadCheckedAt) {
+            const checkedDaysAgo = (new Date().getTime() - track._lastDeadCheckedAt) / 86400000;
+            logger.info('Track was last checked', checkedDaysAgo, 'days ago');
         }
-      })
 
-      logger.debug('Image is Valid', thumbnailUrl);
+        try {
+            try {
+                await axios.get(thumbnailUrl)
+                logger.debug('Image is Valid', thumbnailUrl);
+            } catch (e) {
+                const {response} = e;
 
-      rs();
-    } catch (e) {
-      logger.error('Неизвестная ошибка при проверке статуса трека', e);
+                if (response?.status === 404) {
+                    await db.Tracks.deleteOne({_id});
+                    logger.error(`Dead Track Was Removed :( ${thumbnailUrl}`);
 
-      rj(`Неизвестная ошибка при проверке статуса трека ${thumbnailUrl}`);
-    }
-  });
+                    rs();
+                    return;
+                }
+
+                logger.debug('Fetch image error', thumbnailUrl);
+            }
+
+            // Ставим метку о проверке
+            await db.Tracks.updateOne({_id}, {
+                $set: {
+                    _lastDeadCheckedAt: new Date().getTime(),
+                }
+            })
+
+            rs();
+        } catch (e) {
+            logger.error('Неизвестная ошибка при проверке статуса трека', e);
+
+            rj(`Неизвестная ошибка при проверке статуса трека ${thumbnailUrl}`);
+        }
+    });
 };
 
 /*

@@ -8,11 +8,12 @@ const { log } = require('../../../common/utils/log');
  */
 
 function getTracks({
-  fromObjId, channel, afterObjId, beforeObjId, liveOnly, tracksQuantity, tags, searchStr, category,
+  fromObjId, channel, afterObjId, beforeObjId, liveOnly, tracksQuantity, tags, searchStr, category, customSortParams,
+    customFindParams,
 }) {
   return new Promise(async (rs, rj) => {
     try {
-      const findParams = {};
+      let findParams = {};
       let findProjection = {};
       let sortParams = { 'snippet.liveBroadcastContent': 1, _id: 1 };
 
@@ -30,6 +31,8 @@ function getTracks({
         sortParams = { score: { $meta: 'textScore' } },
         findProjection = sortParams
       );
+      customSortParams && (sortParams = {...sortParams, ...customSortParams})
+      customFindParams && (findParams = {...findParams, ...customFindParams})
 
       if (category) {
         const categoryData = await getCategoriesFromDB({ categoryName: category });
@@ -49,6 +52,7 @@ function getTracks({
       // }
 
       log.debug('findParams', findParams);
+      log.debug('sortParams', sortParams);
 
       const tracks = await db.Tracks.find(findParams, findProjection).limit(tracksQuantity).sort(sortParams).lean();
 
